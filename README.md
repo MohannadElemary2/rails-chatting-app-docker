@@ -4,7 +4,7 @@
 
 ## Introduction
 
-This is the dockerization of the microservices application [Here](https://github.com/MohannadElemary2/rails-chatting-app)
+This is the dockerization of the ruby on rails chat application [Here](https://github.com/MohannadElemary2/rails-chatting-app)
 
 ## Usage
 
