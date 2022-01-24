@@ -1,0 +1,76 @@
+version: "3.9"
+networks:
+  app-tier:
+    driver: bridge
+services:
+  db:
+    platform: linux/x86_64
+    image: "mysql:5.7"
+    environment:
+     MYSQL_ALLOW_EMPTY_PASSWORD: 1
+     MYSQL_ROOT_PASSWORD:
+     MYSQL_USERNAME: root
+     MYSQL_PASSWORD: 
+     MYSQL_DATABASE: ruby
+    expose:
+      - '3306'
+    volumes:
+      - ./tmp/db:/var/run/mysqld
+    ports:
+      - "33061:3306"
+    networks:
+      - app-tier
+
+  redis:
+    image: redis:4.0-alpine
+    command: redis-server
+    volumes:
+      - ./tmp/redis:/data
+    ports:
+      - 6379
+    logging:
+      driver: none
+    networks:
+      - app-tier
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.16.3
+    container_name: elasticsearch
+    environment:
+      - node.name=es01
+      - cluster.name=es-docker-cluster
+      - cluster.initial_master_nodes=es01
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - ./tmp/data01:/usr/share/elasticsearch/data
+    ports:
+      - 9200:9200
+    networks:
+      - app-tier
+
+  web:
+    build: .
+    command: bash -c "sleep 10 && rm -f tmp/pids/server.pid && bundle exec rails s -p 3000 -b '0.0.0.0'"
+    volumes:
+      - /app10
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+      - redis
+      - elasticsearch
+    environment:
+      RAILS_ENV: development
+      DATABASE_NAME: ruby
+      DATABASE_USER: root
+      DATABASE_PASSWORD: 
+      DATABASE_HOST: db
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+    links: [elasticsearch]
+    networks:
+      - app-tier
